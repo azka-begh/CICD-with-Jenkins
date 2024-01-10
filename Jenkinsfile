@@ -9,7 +9,7 @@ pipeline {
 		booleanParam(name: "Deploy", defaultValue: false, description: "Deploy the Build to EKS cluster")
     }	
     environment {
-	ecrRepo = '674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo'
+	ecrRepo = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo"
         //ecrCreds = 'awscreds'
 	dockerImage = "${env.ecrRepo}:${env.BUILD_ID}"
     }
