@@ -34,7 +34,6 @@ pipeline {
 		    post { success { sh 'docker builder prune --all -f' } }
 	    }
 	    stage('Deploy to EKS'){
-		 agent { label 'agent1' }
                  when { expression { 
 			 return params.Deploy }}
             steps {
