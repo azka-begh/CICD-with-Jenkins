@@ -11,8 +11,8 @@ pipeline {
     environment {
 	ecrRepo = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo"
         //ecrCreds = 'awscreds'
-	dockerImage1 = "${env.ecrRepo}:${env.BUILD_ID}"
-	dockerImage2 = "${env.ecrRepo}:latest"
+	dockerImage1 = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo:latest"
+	dockerImage2 = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo:${env.BUILD_ID}"
     }
 	
     stages{
