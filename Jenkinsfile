@@ -11,25 +11,26 @@ pipeline {
     environment {
 	ecrRepo = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo"
         //ecrCreds = 'awscreds'
-	dockerImage = "${env.ecrRepo}:${env.BUILD_ID}"
+	dockerImage1 = "${env.ecrRepo}:${env.BUILD_ID}"
+	dockerImage2 = "${env.ecrRepo}:latest"
     }
 	
     stages{
 	    stage('Docker Image Build') {
 		    steps {
-			    sh 'docker build -t ${env.ecrRepo}:latest ./docker/'
-			    sh 'docker tag ${env.ecrRepo} ${env.dockerImage} '
+			    sh 'docker build -t ${env.dockerImage1} ./docker/'
+			    sh 'docker tag ${env.ecrRepo} ${env.dockerImage2} '
 		    }}
 	    stage('Push Image to ECR'){
 		    steps {
 			    script {
-				    sh 'docker push ${env.ecrRepo}:latest'
+				    sh 'docker push ${env.dockerImage1}'
 				    def exit1 = sh script: 'echo $?'
                                     if (exit1 != 0){
                                     sh 'echo $(aws ecr get-authorization-token --region us-east-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2) | docker login -u AWS 674583976178.dkr.ecr.us-east-2.amazonaws.com --password-stdin'
-				    sh 'docker push ${env.ecrRepo}:latest'
+				    sh 'docker push ${env.dockerImage1}'
 				    }
-				    sh 'docker push ${env.dockerImage}'
+				    sh 'docker push ${env.dockerImage2}'
 			    }}
 		    post { success { sh 'docker builder prune --all -f' } }
 	    }
