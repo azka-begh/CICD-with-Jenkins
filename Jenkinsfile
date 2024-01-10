@@ -1,166 +1,58 @@
 pipeline {
-    options {
-      buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
-      //skipDefaultCheckout() 
-      disableConcurrentBuilds()
-  }
-    agent any
-    parameters {
-	    booleanParam(name: "Deploy", defaultValue: false, description: "Deploy the Build")
-	    booleanParam(name: "SonarQube", defaultValue: false, description: "ByPass SonarQube Scan")
+	options {
+		buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
+		//skipDefaultCheckout() 
+		disableConcurrentBuilds()
+	}
+	agent { label 'agent1' }
+	parameters {
+		booleanParam(name: "Deploy", defaultValue: false, description: "Deploy the Build to EKS cluster")
     }	
     environment {
-        NEXUS_VERSION = "nexus3"
-        NEXUS_PROTOCOL = "http"	    
-        NEXUS_URL = "172.31.18.80:8081"
-        NEXUS_REPOSITORY = "team-artifacts"
-	NEXUS_REPO_ID    = "team-artifacts"
-        NEXUS_CREDENTIAL_ID = "nexuslogin"
-        ARTVERSION = "${env.BUILD_ID}-${env.BUILD_TIMESTAMP}"
-	NEXUS_ARTIFACT = "${env.NEXUS_PROTOCOL}://${env.NEXUS_URL}/repository/${env.NEXUS_REPOSITORY}/com/team/project/tmart/${env.ARTVERSION}/tmart-${env.ARTVERSION}.war"
-	scannerHome = tool 'sonar4.7'
-	ecr_repo = '674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo'
-        ecrCreds = 'awscreds'
-	image = ''
+	ecrRepo = '674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo'
+        //ecrCreds = 'awscreds'
+	dockerImage = '${ecrRepo}:${env.BUILD_ID}'
     }
 	
     stages{
-	stage('Maven Build'){
-            steps {
-                sh 'mvn clean install -DskipTests'
-            }}
-	    
-        stage('JUnit Test') {
-          steps {
-            script {
-              sh 'mvn test'
-              junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
-            }}
-	}
-	stage ('Checkstyle Analysis'){
-            steps {
-		script{
-                sh 'mvn checkstyle:checkstyle'
-		recordIssues enabledForFailure: false, tool: checkStyle()
-	    }}
-	}
-        stage('SonarQube Scan') {
-	  when {
-		  not{
-                   expression {
-                       return params.SonarQube  }}}
-          steps {
-	    script{
-              withSonarQubeEnv('sonar') {
-	       echo "Stage: SonarQube Scan"
-               sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=jenkins \
-                   -Dsonar.projectName=tjenkins \
-                   -Dsonar.projectVersion=1.0 \
-                   -Dsonar.sources=src/ \
-                   -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-                   -Dsonar.junit.reportsPath=target/surefire-reports/ \
-                   -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-                   -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml'''
-		    }
-		echo "Quality Gate"   
-		timeout(time: 5, unit: 'MINUTES') {
-                       def qualitygate = waitForQualityGate(webhookSecretId: 'sqwebhook')
-                       if (qualitygate.status != "OK") {
-			   catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                sh "exit 1"  }}}
-	  }}}
-
-        stage("Publish Artifact to Nexus") {
-            steps {
-                script {
-                    pom = readMavenPom file: "pom.xml";
-                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
-                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    artifactPath = filesByGlob[0].path;
-                    artifactExists = fileExists artifactPath;
-                    if(artifactExists) {
-                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version} ARTVERSION";
-                        nexusArtifactUploader(
-                            nexusVersion: NEXUS_VERSION,
-                            protocol: NEXUS_PROTOCOL,
-                            nexusUrl: NEXUS_URL,
-                            groupId: pom.groupId,
-                            version: ARTVERSION,
-                            repository: NEXUS_REPOSITORY,
-                            credentialsId: NEXUS_CREDENTIAL_ID,
-                            artifacts: [
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging],
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: "pom.xml",
-                                type: "pom"]
-                            ]
-                        );
-                    } 
-		    else {
-                        error "*** File: ${artifactPath}, could not be found";
-                    }}}}
-	    
-	stage('Docker Image Build') {
-          steps {
-             script {
-                image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
-	  }}}
-	    
-        stage('Push Image to ECR'){
-           steps {
-              script {
-                 docker.withRegistry("https://" + ecr_repo, "ecr:us-east-2:" + ecrCreds) {
-                   image.push("$BUILD_ID")
-                   image.push('latest') }
-	      }}
-       post {
-        always {
-            sh 'docker image prune -a -f' } 
-       }}	    
-	    
-	stage("Fetch from Nexus & Deploy using Ansible"){
-		agent { label 'agent1' }
-                 when {
-                   expression {
-                       return params.Deploy   
-                }}
-		steps{
-		     script{
-			dir('ansible'){
-			echo "${params.Deploy}"
-			sh 'ansible-playbook deployment.yml -e NEXUS_ARTIFACT=${NEXUS_ARTIFACT} > live_log || exit 1'
-		        sh 'tail -2 live_log'	
-			}	
-            }}}
-        stage('Deploy to EKS'){
+	    stage('Docker Image Build') {
+		    steps {
+			    sh 'docker build -t ${env.ecrRepo}:latest ./docker/'
+			    sh 'docker tag ${env.ecrRepo} ${env.dockerImage} '
+		    }}
+	    stage('Push Image to ECR'){
+		    steps {
+			    script {
+				    docker push ${env.ecrRepo}:latest
+				    def exit1 = sh script: 'echo $?'
+                                    if (exit1 != 0){
+                                    sh 'echo $(aws ecr get-authorization-token --region us-east-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2) | docker login -u AWS 674583976178.dkr.ecr.us-east-2.amazonaws.com --password-stdin'
+				    docker push 674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo:latest
+				    }
+				    sh 'docker push ${env.dockerImage}'
+			    }}
+		    post { success { sh 'docker builder prune --all -f' } }
+	    }
+	    stage('Deploy to EKS'){
 		 agent { label 'agent1' }
-                 when {
-                   expression {
-                       return params.Deploy   
-                }}
+                 when { expression { 
+			 return params.Deploy }}
             steps {
 		script{
 		 sh 'eksctl get cluster --region us-east-2'
-		 def exit_code = sh script: 'echo $?'
-		 if (exit_code != 0){
+		 def exit2 = sh script: 'echo $?'
+		 if (exit2 != 0){
 			sh './k8s/cluster.sh'
 		 }
                  sh '''
 		 kubectl apply -f ./k8s/eksdeploy.yml
 		 kubectl get deployments  
-                 sleep 10
+                 sleep 5
                  kubectl get svc
                  '''   }}
-         post {
-          always { cleanWs() }
-        }
-	}
-}
-	post {
-          always { cleanWs() }
-        }
+		    post {
+			    always { cleanWs() } }
+	    }
+    }
+	post { always { cleanWs() } }
 }
