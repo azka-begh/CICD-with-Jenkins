@@ -18,8 +18,8 @@ pipeline {
     stages{
 	    stage('Docker Image Build') {
 		    steps {
-			    sh 'docker build -t ${env.dockerImage1} ./docker/'
-			    sh 'docker tag ${env.ecrRepo} ${env.dockerImage2} '
+			    sh 'docker build -t $dockerImage1 ./docker/'
+			    //sh 'docker tag ${env.ecrRepo} ${env.dockerImage2} '
 		    }}
 	    stage('Push Image to ECR'){
 		    steps {
