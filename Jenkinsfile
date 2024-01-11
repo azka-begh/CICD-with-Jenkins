@@ -36,8 +36,9 @@ pipeline {
 			when { expression { return params.Deploy }}
 			steps {
 				script{
-					def status = sh(returnStatus: true, script: 'eksctl get cluster --region us-east-2')
-					if (status != 0){ sh './k8s/cluster.sh' }
+					def countCluster = sh(script: 'eksctl get cluster --region us-east-2')
+					if (countCluster == "No clusters found")
+					{ sh './k8s/cluster.sh' }
 					sh '''kubectl apply -f ./k8s/eksdeploy.yml
                                         kubectl get deployments && sleep 5
                                         kubectl get svc
