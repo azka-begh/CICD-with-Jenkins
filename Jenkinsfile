@@ -105,7 +105,7 @@ pipeline {
 					sh 'mkdir -p trivyreports && cd trivyreports/'
 					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
 					sh "trivy image --format template --template \"@html.tpl\" --output trivy_report.html ${image}" }}
-			post {
+			post { always {
 					publishHTML target : [
 						allowMissing: true,
 						alwaysLinkToLastBuild: true,
@@ -113,7 +113,7 @@ pipeline {
 						reportDir: 'trivyreports',
 						reportFiles: 'trivy_report.html',
 						reportName: 'Trivy Scan',
-						reportTitles: 'Trivy Scan'] } } 
+						reportTitles: 'Trivy Scan'] } } }
 				
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
