@@ -22,7 +22,7 @@ pipeline {
 	        scannerHome = tool 'sonar4.7'
 	        ecr_repo = '674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo'
                 ecrCreds = 'awscreds'
-	        dockerImage = "${env.ecrRepo}:${env.BUILD_ID}"
+	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
 	/*	stage('Maven Build'){
@@ -106,14 +106,14 @@ pipeline {
 					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
 					sh "trivy image --format template --template \"@html.tpl\" --output trivy_report.html ${dockerImage}" }}
 			post { always {
-					publishHTML target : [
+					publishHTML (target : [
 						allowMissing: true,
 						alwaysLinkToLastBuild: true,
 						keepAll: true,
 						reportDir: 'trivyreports',
 						reportFiles: 'trivy_report.html',
 						reportName: 'Trivy Scan',
-						reportTitles: 'Trivy Scan'] } } }
+						reportTitles: 'Trivy Scan') ] } } }
 				
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
