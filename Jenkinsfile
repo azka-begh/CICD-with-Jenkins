@@ -97,7 +97,7 @@ pipeline {
 			agent { label 'agent1' }
 			steps {
 				script {
-					sh 'docker builder prune --all -f'
+					//sh 'docker builder prune --all -f'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
 		stage('Push Image to ECR'){
@@ -108,7 +108,7 @@ pipeline {
 						image.push("$BUILD_ID")
 						image.push('latest') }
 				}}
-			//post { always { sh 'docker builder prune --all -f' } }
+			post { always { sh 'docker builder prune --all -f' } }
 		}
 		/*stage("Fetch from Nexus & Deploy using Ansible"){
 			agent { label 'agent1' }
