@@ -1,29 +1,26 @@
+//To build Docker Images and push them to ECR without using plugins
 pipeline {
 	options {
-		buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
-		//skipDefaultCheckout() 
+		buildDiscarder(logRotator(numToKeepStr: '3'))
 		disableConcurrentBuilds()
 	}
 	agent { label 'agent1' }
 	parameters {
 		booleanParam(name: "Deploy", defaultValue: false, description: "Deploy the Build to EKS cluster")
-    }	
-    environment {
+	}	
+	environment {
 	ecrRepo = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo"
-        //ecrCreds = 'awscreds'
-	//dockerImage = "674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo:latest"
 	dockerImage = "${env.ecrRepo}:${env.BUILD_ID}"
-    }
-	
-    stages{
-	    stage('Docker Image Build') {
-		    steps {
+	}
+	stages{
+		stage('Docker Image Build') {
+			steps {
 			    sh 'docker build -t $dockerImage ./docker/'
 			    sh 'docker tag $ecrRepo $ecrRepo:latest'
 		    }}
-	    stage('Push Image to ECR'){
-		    steps {
-			    script {
+		stage('Push Image to ECR'){
+			steps {
+				script {
 				    def status = sh(returnStatus: true, script: 'docker push $ecrRepo:latest')
                                     if (status != 0){
 					    sh "aws ecr get-authorization-token --region us-east-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2 > ecr.txt"
@@ -34,25 +31,18 @@ pipeline {
 				    sh 'rm -f ecr.txt'
 			    }}
 		    post { success { sh 'docker builder prune --all -f' } }
-	    }
-	    stage('Deploy to EKS'){
-                 when { expression { return params.Deploy }}
-            steps {
-		script{
-		 sh 'eksctl get cluster --region us-east-2'
-		 def exit2 = sh script: 'echo $?'
-		 if (exit2 != 0){
-			sh './k8s/cluster.sh'
-		 }
-                 sh '''
-		 kubectl apply -f ./k8s/eksdeploy.yml
-		 kubectl get deployments  
-                 sleep 5
-                 kubectl get svc
-                 '''   }}
-		    post {
-			    always { cleanWs() } }
-	    }
-    }
-	post { always { cleanWs() } }
+		}
+		stage('Deploy to EKS'){
+			when { expression { return params.Deploy }}
+			steps {
+				script{
+					def status = sh(returnStatus: true, script: 'eksctl get cluster --region us-east-2')
+					if (status != 0){ sh './k8s/cluster.sh' }
+					sh '''kubectl apply -f ./k8s/eksdeploy.yml
+                                        kubectl get deployments && sleep 5
+                                        kubectl get svc
+					'''   }}
+			post { always { cleanWs() } }
+		}
+	}
 }
