@@ -106,7 +106,8 @@ pipeline {
 					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
 					sh "trivy image --format template --template \"@html.tpl\" --output trivy_report.html ${dockerImage}" }}
 			post { always {
-					publishHTML target : [
+				archiveArtifacts artifacts: "trivy_report.html", fingerprint: true
+				publishHTML target : [
 						allowMissing: true,
 						alwaysLinkToLastBuild: true,
 						keepAll: true,
