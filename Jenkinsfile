@@ -36,11 +36,12 @@ pipeline {
 			when { expression { return params.Deploy }}
 			steps {
 				script{
-					sh 'chmod +x ./ && ./k8s/cluster.sh' 
-					sh '''kubectl apply -f ./k8s/eksdeploy.yml
+					dir('k8s'){
+					sh "chmod +x ./cluster.sh && ./cluster.sh" 
+					sh '''kubectl apply -f ./eksdeploy.yml
                                         kubectl get deployments && sleep 5
                                         kubectl get svc
-					'''   }}
+					'''   }}}
 			post { always { cleanWs() } }
 		}
 	}
