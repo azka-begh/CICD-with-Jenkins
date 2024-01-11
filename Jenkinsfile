@@ -1,13 +1,14 @@
 pipeline {
 	options {
-		buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
+		buildDiscarder(logRotator(numToKeepStr: '3'))
                 //skipDefaultCheckout() 
                 disableConcurrentBuilds()
 	}
 	agent any
 	parameters {
-		booleanParam(name: "Deploy", defaultValue: false, description: "Deploy the Build")
-		booleanParam(name: "SonarQube", defaultValue: false, description: "ByPass SonarQube Scan")
+		booleanParam(name: "EksDeploy", defaultValue: false, description: "Deploy the Build to EKS")
+		booleanParam(name: "AnsibleDeploy", defaultValue: false, description: "Deploy the Build to Target Server using Ansible")
+		booleanParam(name: "SonarQube", defaultValue: false, description: "By-Pass SonarQube Scan")
 	}	
 	environment {
 		NEXUS_VERSION = "nexus3"
@@ -34,11 +35,10 @@ pipeline {
 					sh 'mvn test'
 					junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
 				}}}
-		stage ('Checkstyle Analysis'){
+		stage ('Checkstyle Analysis') {
 			steps {
 				script{
 					sh 'mvn checkstyle:checkstyle'
-					recordIssues enabledForFailure: false, tool: checkStyle()
 				}}}
 		stage('SonarQube Scan') {
 			when { not{ expression { return params.SonarQube  }}}
@@ -59,10 +59,9 @@ pipeline {
 					timeout(time: 5, unit: 'MINUTES') {
 						def qualitygate = waitForQualityGate(webhookSecretId: 'sqwebhook')
 						if (qualitygate.status != "OK") {
-							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-								sh "exit 1"  }}}
+							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') { sh "exit 1"  } }}
 				}}}
-		/*stage("Publish Artifact to Nexus") {
+		/*stage('Publish Artifact to Nexus') {
 			steps {
 				script {
 					pom = readMavenPom file: "pom.xml";
@@ -97,10 +96,9 @@ pipeline {
 			agent { label 'agent1' }
 			steps {
 				script {
-					//sh 'docker builder prune --all -f'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
-		stage('Push Image to ECR'){
+		stage('Push Image to ECR') {
 			agent { label 'agent1' }
 			steps {
 				script {
@@ -108,21 +106,21 @@ pipeline {
 						image.push("$BUILD_ID")
 						image.push('latest') }
 				}}
-			post { always { sh 'docker builder prune --all -f' } }
+			post { success { sh 'docker builder prune --all -f' } }
 		}
-		/*stage("Fetch from Nexus & Deploy using Ansible"){
+		stage('Fetch from Nexus & Deploy using Ansible') {
 			agent { label 'agent1' }
-			when { expression { return params.Deploy }}
+			when { expression { return params.AnsibleDeploy }}
 			steps{
 				script{
 					dir('ansible'){
 						echo "${params.Deploy}"
 						sh 'ansible-playbook deployment.yml -e NEXUS_ARTIFACT=${NEXUS_ARTIFACT} > live_log || exit 1'
 						sh 'tail -2 live_log'}
-				}}} */
-		stage('Deploy to EKS'){
+				}}} 
+		stage('Deploy to EKS') {
 			agent { label 'agent1' }
-			when { expression { return params.Deploy }}
+			when { expression { return params.EksDeploy }}
 			steps {
 				script{
 					dir('k8s'){
