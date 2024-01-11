@@ -62,7 +62,7 @@ pipeline {
 							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
 								sh "exit 1"  }}}
 				}}}
-		stage("Publish Artifact to Nexus") {
+		/*stage("Publish Artifact to Nexus") {
 			steps {
 				script {
 					pom = readMavenPom file: "pom.xml";
@@ -92,7 +92,7 @@ pipeline {
 					}
 					else {
 						error "*** File: ${artifactPath}, could not be found";
-					}}}}
+					}}}} */
 		stage('Docker Image Build') {
 			steps {
 				script {
@@ -107,7 +107,7 @@ pipeline {
 				}}
 			post { always { sh 'docker builder prune --all -f' } 
 			     }}
-		stage("Fetch from Nexus & Deploy using Ansible"){
+		/*stage("Fetch from Nexus & Deploy using Ansible"){
 			agent { label 'agent1' }
 			when { expression { return params.Deploy }}
 			steps{
@@ -116,7 +116,7 @@ pipeline {
 						echo "${params.Deploy}"
 						sh 'ansible-playbook deployment.yml -e NEXUS_ARTIFACT=${NEXUS_ARTIFACT} > live_log || exit 1'
 						sh 'tail -2 live_log'}
-				}}}
+				}}} */
 		stage('Deploy to EKS'){
 			agent { label 'agent1' }
 			when { expression { return params.Deploy }}
