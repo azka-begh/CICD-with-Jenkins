@@ -36,7 +36,7 @@ pipeline {
 			when { expression { return params.Deploy }}
 			steps {
 				script{
-					sh './k8s/cluster.sh' 
+					sh 'chmod +x ./ && ./k8s/cluster.sh' 
 					sh '''kubectl apply -f ./k8s/eksdeploy.yml
                                         kubectl get deployments && sleep 5
                                         kubectl get svc
