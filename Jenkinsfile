@@ -26,7 +26,7 @@ pipeline {
 			    script {
 				    def status = sh(returnStatus: true, script: 'docker push $ecrRepo:latest')
                                     if (status != 0){
-					    sh 'aws ecr get-authorization-token --region us-east-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2 > ecr.txt'
+					    sh "aws ecr get-authorization-token --region us-east-2 --output text --query 'authorizationData[].authorizationToken' | base64 -d | cut -d: -f2 > ecr.txt"
                                             sh 'cat ecr.txt | docker login -u AWS 674583976178.dkr.ecr.us-east-2.amazonaws.com --password-stdin'
 					    sh 'docker push $ecrRepo:latest'
 				    }
