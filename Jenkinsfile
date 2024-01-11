@@ -94,12 +94,14 @@ pipeline {
 						error "*** File: ${artifactPath}, could not be found";
 					}}}} */
 		stage('Docker Image Build') {
+			agent { label 'agent1' }
 			steps {
 				script {
 					sh 'docker builder prune --all -f'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
 		stage('Push Image to ECR'){
+			agent { label 'agent1' }
 			steps {
 				script {
 					docker.withRegistry("https://" + ecr_repo, "ecr:us-east-2:" + ecrCreds) {
