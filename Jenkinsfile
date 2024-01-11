@@ -25,7 +25,7 @@ pipeline {
 	        image = ''
 	}
 	stages{
-		stage('Maven Build'){
+	/*	stage('Maven Build'){
 			steps {
 				sh 'mvn clean install -DskipTests'
 			}}
@@ -60,7 +60,7 @@ pipeline {
 						def qualitygate = waitForQualityGate(webhookSecretId: 'sqwebhook')
 						if (qualitygate.status != "OK") {
 							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') { sh "exit 1"  } }}
-				}}}
+				}}} */
 		/*stage('Publish Artifact to Nexus') {
 			steps {
 				script {
@@ -98,6 +98,23 @@ pipeline {
 				script {
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
+		stage ('Trivy Scan') {
+			agent { label 'agent1' }
+			steps{
+				script {
+					sh 'mkdir -p trivyreports && cd trivyreports/'
+					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
+					sh "trivy image --format template --template \"@html.tpl\" --output trivy_report.html ${image}" }}
+			post {
+					publishHTML target : [
+						allowMissing: true,
+						alwaysLinkToLastBuild: true,
+						keepAll: true,
+						reportDir: 'trivyreports',
+						reportFiles: 'trivy_report.html',
+						reportName: 'Trivy Scan',
+						reportTitles: 'Trivy Scan'] } } 
+				
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
 			steps {
