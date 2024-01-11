@@ -9,8 +9,12 @@ KEY_NAME=docker-nexus
 aws sts get-caller-identity >> /dev/null
 if [ $? -eq 0 ]
 then
-  echo "Credentials tested, proceeding with the cluster creation."
-
+echo "Credentials tested, proceeding with the cluster creation."
+OUTPUT=$(eksctl get cluster --region $REGION)
+  if [ "$OUTPUT" == "No clusters found" ]
+  then
+    echo "$OUTPUT... Creating cluster(s)"
+  
   # Creation of EKS cluster
   eksctl create cluster \
   --name $CLUSTER_NAME \
@@ -25,11 +29,12 @@ then
   --ssh-access \
   --ssh-public-key $KEY_NAME \
   --managed
-  if [ $? -eq 0 ]
-  then
-    echo "Cluster Setup Completed with eksctl command."
-  else
-    echo "Cluster Setup Failed while running eksctl command."
+    if [ $? -eq 0 ]
+    then
+      echo "Cluster Setup Completed with eksctl command."
+    else
+      echo "Cluster Setup Failed while running eksctl command."
+    fi
   fi
 else
   echo "Please run aws configure & set right credentials."
