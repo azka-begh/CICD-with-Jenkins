@@ -22,7 +22,7 @@ pipeline {
 	        scannerHome = tool 'sonar4.7'
 	        ecr_repo = '674583976178.dkr.ecr.us-east-2.amazonaws.com/teamimagerepo'
                 ecrCreds = 'awscreds'
-	        image = ''
+	        dockerImage = "${env.ecrRepo}:${env.BUILD_ID}"
 	}
 	stages{
 	/*	stage('Maven Build'){
