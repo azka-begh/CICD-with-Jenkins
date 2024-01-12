@@ -103,7 +103,7 @@ pipeline {
 					git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
-		stage ('Trivy Scan') {
+		/*stage ('Trivy Scan') {
 			agent { label 'agent1' }
 			steps{
 				script {
@@ -113,15 +113,15 @@ pipeline {
 				}}
 			post { always {
 				archiveArtifacts artifacts: "trivy_report.html"
-				/*publishHTML target : [
+				publishHTML target : [
 						allowMissing: true,
 						alwaysLinkToLastBuild: true,
 						keepAll: true,
 						reportDir: 'trivyreports',
 						reportFiles: 'trivy_report.html',
 						reportName: 'Trivy Scan',
-						reportTitles: 'Trivy Scan'] */
-      } } }
+						reportTitles: 'Trivy Scan'] 
+      } } }*/
 				
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
