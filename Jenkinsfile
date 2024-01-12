@@ -1,7 +1,7 @@
 pipeline {
 	options {
 		buildDiscarder(logRotator(numToKeepStr: '3'))
-                //skipDefaultCheckout() 
+                skipDefaultCheckout() 
                 disableConcurrentBuilds()
 	}
 	agent any
@@ -25,6 +25,10 @@ pipeline {
 	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
+		stage('SCM checksout'){
+			steps{
+				git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
+		}}
 		stage('Maven Build'){
 			steps {
 				sh 'mvn clean install -DskipTests'
@@ -96,6 +100,7 @@ pipeline {
 			agent { label 'agent1' }
 			steps {
 				script {
+					git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
 		stage ('Trivy Scan') {
