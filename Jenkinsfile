@@ -28,7 +28,7 @@ pipeline {
 	stages{
 		stage('SCM Checkout'){
 			steps{
-				git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
+				git branch: 'test-trivy', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 		}}
 		stage('Maven Build'){
 			steps {
