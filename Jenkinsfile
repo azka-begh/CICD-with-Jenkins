@@ -26,7 +26,7 @@ pipeline {
 	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
-		stage('SCM Checkout'){
+	/*	stage('SCM Checkout'){
 			steps{
 				git branch: 'test-trivy', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 		}}
@@ -97,7 +97,7 @@ pipeline {
 					}
 					else {
 						error "*** File: ${artifactPath}, could not be found";
-					}}}} 
+					}}}} */
 		stage('Docker Image Build') {
 			agent { label 'agent1' }
 			steps {
