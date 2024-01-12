@@ -108,12 +108,11 @@ pipeline {
 			steps{
 				script {
 					sh 'mkdir -p trivyreports && cd trivyreports/'
-					//sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
-					//sh "trivy image --format template --template \"@html.tpl\" --output trivy_report.html ${dockerImage}" 
-					sh 'trivy image --scanners vuln ${dockerImage} > report.txt'
+					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
+					sh "trivy image  --scanners vuln --format template --template \"@html.tpl\" --output trivy_report.html ${dockerImage}" 
 				}}
 			post { always {
-				archiveArtifacts artifacts: "report.txt", fingerprint: true
+				archiveArtifacts artifacts: "trivy_report.html"
 				/*publishHTML target : [
 						allowMissing: true,
 						alwaysLinkToLastBuild: true,
