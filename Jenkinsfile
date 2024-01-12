@@ -105,26 +105,13 @@ pipeline {
 					git branch: 'test-trivy', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
-		/*stage ('Trivy Scan') {
+		stage ('Trivy Scan') {
 			agent { label 'agent1' }
 			steps{
 				script {
-					sh 'mkdir -p trivyreports && cd trivyreports/'
-					sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
-					sh "trivy image  --scanners vuln --format template --template \"@html.tpl\" --output trivy_report.html ${dockerImage}" 
+					sh 'trivy --no-progress --severity HIGH, CRITICAL ${dockerImage}'	
 				}}
-			post { always {
-				archiveArtifacts artifacts: "trivy_report.html"
-				publishHTML target : [
-						allowMissing: true,
-						alwaysLinkToLastBuild: true,
-						keepAll: true,
-						reportDir: 'trivyreports',
-						reportFiles: 'trivy_report.html',
-						reportName: 'Trivy Scan',
-						reportTitles: 'Trivy Scan'] 
-      } } }*/
-				
+		}		
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
 			steps {
@@ -133,10 +120,7 @@ pipeline {
 						image.push("$BUILD_ID")
 						image.push('latest') }
 				}}
-			post { success { 
-				sh 'docker builder prune --all -f' 
-				sh 'docker rmi -f ${dockerImage}'
-			} }
+			post { success { sh 'docker rmi -f ${dockerImage}' } }
 		}
 		stage('Fetch from Nexus & Deploy using Ansible') {
 			agent { label 'agent1' }
@@ -158,7 +142,9 @@ pipeline {
 						sh '''kubectl apply -f ./eksdeploy.yml
                                                 kubectl get deployments && sleep 5 && kubectl get svc
 						'''   }}}
-			post { always { cleanWs() } }
+			post { always {
+				sh 'docker builder prune --all -f'
+				cleanWs() } }
 		}
 	}
 	post { always { cleanWs() } }
