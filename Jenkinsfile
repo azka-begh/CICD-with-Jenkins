@@ -109,9 +109,10 @@ pipeline {
 			agent { label 'agent1' }
 			steps{
 				script {
-					//sh 'trivy image --download-java-db-only -q --severity HIGH,CRITICAL ${dockerImage}'	
-					sh 'docker run -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy image ${dockerImage}'
+					 sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
+                                         sh 'trivy image --format template --template "./html.tpl" -o trivy.html --cache-dir ~/trivy/ ${dockerImage}'
 				}}
+			post { always { archiveArtifacts artifacts: "trivy.html" }}
 		}		
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
