@@ -110,7 +110,7 @@ pipeline {
 			steps{
 				script {
 					 sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
-                                         sh 'trivy image --format template --template "@./html.tpl" -o trivy.html --cache-dir ~/trivy/ --severity MEDIUM,HIGH ${dockerImage}'
+                                         sh 'trivy image --format template --template \"@./html.tpl\" -o trivy.html --cache-dir ~/trivy/ --severity MEDIUM,HIGH,CRITICAL ${dockerImage}'
 				}}
 			post { always { archiveArtifacts artifacts: "trivy.html" 
 				                     publishHTML target : [
