@@ -25,7 +25,7 @@ pipeline {
 	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
-		stage('SCM checksout'){
+		stage('SCM Checkout'){
 			steps{
 				git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 		}}
