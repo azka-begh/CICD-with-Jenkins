@@ -109,10 +109,11 @@ pipeline {
 			agent { label 'agent1' }
 			steps{
 				script {
-					 sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
-                                         sh 'trivy image --format template --template \"@./html.tpl\" -o trivy.html --cache-dir ~/trivy/ --severity MEDIUM,HIGH,CRITICAL ${dockerImage}'
+					 //sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
+                                        sh 'trivy image --light ${dockerImage}'
+					//sh 'trivy image --format template --template \"@./html.tpl\" -o trivy.html --cache-dir ~/trivy/ --severity MEDIUM,HIGH,CRITICAL ${dockerImage}'
 				}}
-			post { always { archiveArtifacts artifacts: "trivy.html", fingerprint: true
+			/*post { always { archiveArtifacts artifacts: "trivy.html", fingerprint: true
 				                     publishHTML target : [
 							     allowMissing: true,
 							     alwaysLinkToLastBuild: true,
@@ -121,7 +122,7 @@ pipeline {
 							     reportFiles: 'trivy.html',
 							     reportName: 'Trivy Scan',
 							     reportTitles: 'Trivy Scan']
-				      }}
+				      }} */
 		}		
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
