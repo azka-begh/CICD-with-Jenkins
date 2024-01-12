@@ -124,7 +124,10 @@ pipeline {
 						image.push("$BUILD_ID")
 						image.push('latest') }
 				}}
-			post { success { sh 'docker builder prune --all -f' } }
+			post { success { 
+				sh 'docker builder prune --all -f' 
+				sh 'docker rmi -f ${dockerImage}'
+			} }
 		}
 		stage('Fetch from Nexus & Deploy using Ansible') {
 			agent { label 'agent1' }
