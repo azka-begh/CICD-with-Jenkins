@@ -5,7 +5,6 @@ pipeline {
                 disableConcurrentBuilds()
 	}
 	agent any
-	
 	parameters {
 		booleanParam(name: "EksDeploy", defaultValue: false, description: "Deploy the Build to EKS")
 		booleanParam(name: "AnsibleDeploy", defaultValue: false, description: "Deploy the Build to Target Server using Ansible")
@@ -26,9 +25,9 @@ pipeline {
 	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
-	/*	stage('SCM Checkout'){
+		stage('SCM Checkout'){
 			steps{
-				git branch: 'test-trivy', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
+				git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 		}}
 		stage('Maven Build'){
 			steps {
@@ -64,8 +63,7 @@ pipeline {
 					echo "Waiting for Quality Gate"
 					timeout(time: 5, unit: 'MINUTES') {
 						def qualitygate = waitForQualityGate(webhookSecretId: 'sqwebhook')
-						if (qualitygate.status != "OK") {
-							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') { sh "exit 1"  } }}
+						if (qualitygate.status != "OK") { catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') { sh "exit 1"  } }}
 				}}} 
 		stage('Publish Artifact to Nexus') {
 			steps {
@@ -97,23 +95,22 @@ pipeline {
 					}
 					else {
 						error "*** File: ${artifactPath}, could not be found";
-					}}}} */
+					}}}} 
 		stage('Docker Image Build') {
 			agent { label 'agent1' }
 			steps {
 				script {
-					git branch: 'test-trivy', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
+					git branch: 'master', url: 'https://github.com/azka-begh/CICD-with-Jenkins.git'
 					image = docker.build(ecr_repo + ":$BUILD_ID", "./") 
 				}}}
 		stage ('Trivy Scan') {
 			agent { label 'agent1' }
 			steps{
 				script {
-					 //sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
-                                        sh 'trivy image --skip-db-update --skip-java-db-update --cache-dir ~/trivy/ ${dockerImage}'
-					//sh 'trivy image --format template --template \"@./html.tpl\" -o trivy.html --cache-dir ~/trivy/ --severity MEDIUM,HIGH,CRITICAL ${dockerImage}'
+					 sh 'curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/html.tpl > ./html.tpl'
+				         sh 'trivy image --skip-db-update --skip-java-db-update --cache-dir ~/trivy/ --format template --template \"@./html.tpl\" -o trivy.html ${dockerImage}' 
 				}}
-			/*post { always { archiveArtifacts artifacts: "trivy.html", fingerprint: true
+			post { always { archiveArtifacts artifacts: "trivy.html", fingerprint: true
 				                     publishHTML target : [
 							     allowMissing: true,
 							     alwaysLinkToLastBuild: true,
@@ -122,7 +119,7 @@ pipeline {
 							     reportFiles: 'trivy.html',
 							     reportName: 'Trivy Scan',
 							     reportTitles: 'Trivy Scan']
-				      }} */
+				      }}
 		}		
 		stage('Push Image to ECR') {
 			agent { label 'agent1' }
@@ -132,7 +129,10 @@ pipeline {
 						image.push("$BUILD_ID")
 						image.push('latest') }
 				}}
-			post { success { sh 'docker rmi -f ${dockerImage}' } }
+			post { success {
+				sh 'docker rmi -f ${dockerImage}'
+				sh 'docker builder prune --all -f'
+			} }
 		}
 		stage('Fetch from Nexus & Deploy using Ansible') {
 			agent { label 'agent1' }
@@ -140,10 +140,12 @@ pipeline {
 			steps{
 				script{
 					dir('ansible'){
-						echo "${params.Deploy}"
-						sh 'ansible-playbook deployment.yml -e NEXUS_ARTIFACT=${NEXUS_ARTIFACT} > live_log || exit 1'
-						sh 'tail -2 live_log'}
-				}}} 
+						echo "${params.AnsibleDeploy}"
+						sh 'ansible-playbook deployment.yml -e NEXUS_ARTIFACT=${NEXUS_ARTIFACT} -v > live_log.txt || exit 1'
+						sh 'tail -2 live_log.txt'}
+				}}
+			post { always { archiveArtifacts artifacts: "ansible/live_log.txt", fingerprint: true } }
+		} 
 		stage('Deploy to EKS') {
 			agent { label 'agent1' }
 			when { expression { return params.EksDeploy }}
@@ -154,9 +156,7 @@ pipeline {
 						sh '''kubectl apply -f ./eksdeploy.yml
                                                 kubectl get deployments && sleep 5 && kubectl get svc
 						'''   }}}
-			post { always {
-				sh 'docker builder prune --all -f'
-				cleanWs() } }
+			post { always { cleanWs() } }
 		}
 	}
 	post { always { cleanWs() } }
