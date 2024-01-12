@@ -5,8 +5,7 @@ pipeline {
                 disableConcurrentBuilds()
 	}
 	agent any
-	tools {
-        jdk "jdk-11" }
+	
 	parameters {
 		booleanParam(name: "EksDeploy", defaultValue: false, description: "Deploy the Build to EKS")
 		booleanParam(name: "AnsibleDeploy", defaultValue: false, description: "Deploy the Build to Target Server using Ansible")
@@ -48,6 +47,7 @@ pipeline {
 				}}}
 		stage('SonarQube Scan') {
 			when { not{ expression { return params.SonarQube  }}}
+			tools { jdk "jdk-11" }
 			steps {
 				script{
 					withSonarQubeEnv('sonar') {
