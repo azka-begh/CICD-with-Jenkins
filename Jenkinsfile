@@ -109,7 +109,7 @@ pipeline {
 			agent { label 'agent1' }
 			steps{
 				script {
-					sh 'trivy image -q --severity HIGH, CRITICAL ${dockerImage}'	
+					sh 'trivy image -q --severity HIGH,CRITICAL ${dockerImage}'	
 				}}
 		}		
 		stage('Push Image to ECR') {
