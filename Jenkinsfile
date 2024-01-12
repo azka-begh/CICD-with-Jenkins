@@ -25,7 +25,7 @@ pipeline {
 	        dockerImage = "${env.ecr_repo}:${env.BUILD_ID}"
 	}
 	stages{
-	/*	stage('Maven Build'){
+		stage('Maven Build'){
 			steps {
 				sh 'mvn clean install -DskipTests'
 			}}
@@ -60,8 +60,8 @@ pipeline {
 						def qualitygate = waitForQualityGate(webhookSecretId: 'sqwebhook')
 						if (qualitygate.status != "OK") {
 							catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') { sh "exit 1"  } }}
-				}}} */
-		/*stage('Publish Artifact to Nexus') {
+				}}} 
+		stage('Publish Artifact to Nexus') {
 			steps {
 				script {
 					pom = readMavenPom file: "pom.xml";
@@ -91,7 +91,7 @@ pipeline {
 					}
 					else {
 						error "*** File: ${artifactPath}, could not be found";
-					}}}} */
+					}}}} 
 		stage('Docker Image Build') {
 			agent { label 'agent1' }
 			steps {
